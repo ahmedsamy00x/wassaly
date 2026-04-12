@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TripStatus {
+  OPEN
+  LOCKED
+  IN_PROGRESS
+  DELIVERED
+  CLOSED
+}
+
+enum RequestStatus {
+  PENDING
+  CONFIRMED
+  PICKED_UP
+  DELIVERED
+  CANCELLED
+}
+
+enum RequestItemStatus {
+  PENDING
+  PICKED_UP
+  DELIVERED
+}
+
+enum NotificationType {
+  REQUEST_RECEIVED
+  REQUEST_CONFIRMED
+  REQUEST_CANCELLED
+  TRIP_IN_PROGRESS
+  ITEM_PICKED_UP
+  ITEM_DELIVERED
+  REVIEW_RECEIVED
+}
+
+enum Platform {
+  IOS
+  ANDROID
+}
+
+model User {
+  id              String         @id @default(uuid())
+  name            String
+  email           String         @unique
+  password        String
+  phone           String?        @unique
+  lat             Float?
+  lng             Float?
+  trips           Trip[]
+  requests        Request[]
+  notifications   Notification[]
+  reputationScore Int            @default(0)
+  reviewsGiven    Review[]       @relation("ReviewsGiven")
+  reviewsReceived Review[]       @relation("ReviewsReceived")
+  pushTokens      PushToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Trip {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  status          TripStatus     @default(OPEN)
+  destinationName String
+  destinationLat  Float
+  destinationLng  Float
+  departureTime   DateTime?
+  notifications   Notification[]
+  reviews         Review[]
+
+  notes    String?
+  requests Request[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Request {
+  id     String        @id @default(uuid())
+  userId String
+  user   User          @relation(fields: [userId], references: [id])
+  tripId String
+  trip   Trip          @relation(fields: [tripId], references: [id])
+  status RequestStatus @default(PENDING)
+  items  RequestItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RequestItem {
+  id        String            @id @default(uuid())
+  name      String
+  requestId String
+  request   Request           @relation(fields: [requestId], references: [id])
+  status    RequestItemStatus @default(PENDING)
+  quantity  Int               @default(1)
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  reviewerId String
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId String
+  reviewee   User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  tripId     String
+  trip       Trip     @relation(fields: [tripId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  tripId    String?
+  trip      Trip?            @relation(fields: [tripId], references: [id])
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  platform  Platform
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
