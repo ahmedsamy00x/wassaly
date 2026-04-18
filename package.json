@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "turbo": "latest"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
   }
 }
